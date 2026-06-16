@@ -1,0 +1,19 @@
+# Created by venv; see https://docs.python.org/3/library/venv.html
+# 1. Local Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# 2. Python bytecode cache (compiled files)
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# 3. Environment Variables (Contains private passwords/secrets)
+.env
+
+# 4. OS metadata
+.DS_Store
+Thumbs.db
