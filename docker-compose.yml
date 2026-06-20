@@ -6,12 +6,19 @@ services:
     ports:
       - "8000:8000"
     volumes:
-      - "./app/:/code/app"
+      - ./app/:/code/app
+      - ./migrations:/code/migrations
+      - ./alembic.ini:/code/alembic.ini
     environment:
       - ENV=development
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: |
+      sh -c "
+      alembic revision --autogenerate &
+      alembic upgrade head &
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     depends_on:
-      - db
+      db:
+        condition: service_healthy # waits for the db to pass health checks
 
   db:
     image: postgres:15-alpine
@@ -22,8 +29,15 @@ services:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres_password
       - POSTGRES_DB=auth_db
+      - TZ=UTC
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d auth_db"]
+      interval: 5s     # Check every 5 seconds
+      timeout: 5s      # Wait up to 5 seconds for a response
+      retries: 5       # Try 5 times before failing
+      start_period: 2s # Give the DB 2 seconds to boot before checking
 
 volumes:
   postgres_data:

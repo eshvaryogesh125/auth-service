@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "authservice"
 
     DB_USER: str = "postgres"
-    DB_PASSWORD: str = "postgres"
+    DB_PASSWORD: str = "postgres_password"
     DB_HOST: str = "db"
     DB_PORT: int = 5432
     DB_NAME: str = "auth_db"
