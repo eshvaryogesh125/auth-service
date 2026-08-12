@@ -13,12 +13,16 @@ services:
       - .env
     environment:
       - ENV=development
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
     command: |
       sh -c "
       alembic upgrade head &&
       uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
     depends_on:
       db:
+        condition: service_healthy # waits for the db to pass health checks
+      redis:
         condition: service_healthy # waits for the db to pass health checks
 
   db:
@@ -40,5 +44,20 @@ services:
       retries: 5       # Try 5 times before failing
       start_period: 2s # Give the DB 2 seconds to boot before checking
 
+  redis:
+    image: redis:7-alpine
+    container_name: auth_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+      start_period: 2s
+
 volumes:
   postgres_data:
+  redis_data:
