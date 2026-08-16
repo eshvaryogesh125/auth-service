@@ -1,9 +1,11 @@
 from passlib.context import CryptContext
-from jose import jwt
+from jose import jwt, JWTError
 from datetime import datetime, timedelta, timezone
 
 from app.core.settings import settings
+import uuid
 
+from app.core.logging import logger
 
 ALGORITHM = "RS256"
 PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -22,7 +24,19 @@ def create_access_token(data: dict, expires_minutes: int = None) -> str:
     to_encode.update({
         "exp" : expire,
         "iat" : datetime.now(timezone.utc),
-        "type": "access"
+        "type": "access",
+        "jti" : str(uuid.uuid4()),
+        # add sub
+        # add tenant
+        # add roles
     })
 
     return jwt.encode(to_encode, settings.JWT_PRIVATE_KEY, ALGORITHM)
+
+def decode_access_token(to_decode):
+    try:
+        decoded = jwt.decode(to_decode, settings.JWT_PUBLIC_KEY, algorithms=[ALGORITHM])
+        return decoded
+    except JWTError as err:
+        logger.info(f"Exception at decode_access_token:{str(err)}")
+        raise
