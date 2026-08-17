@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from app.core.settings import settings 
+from app.core.logging import logger
 
 app = FastAPI(
         title=settings.PROJECT_NAME,
@@ -11,6 +12,7 @@ app = FastAPI(
 
 @app.get("/health")
 def health_check():
+    logger.info("helloooo")
     return {
         "status" : "ok",
         "environment" : settings.ENV

@@ -7,6 +7,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     ENV:Literal["development", "production"] = "development"
     PROJECT_NAME: str = "authservice"
+    BASE_URL: str = "http://localhost:8000"
 
     DB_USER: str = "postgres"
     DB_PASSWORD: str | None = None
@@ -22,7 +23,7 @@ class Settings(BaseSettings):
             return self.DB_URL
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int | None = None
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int | None = 15
     JWT_PRIVATE_KEY_B64: str
     JWT_PUBLIC_KEY_B64: str
     @computed_field
@@ -34,6 +35,9 @@ class Settings(BaseSettings):
     @property
     def JWT_PUBLIC_KEY(self) -> str:
         return base64.b64decode(self.JWT_PUBLIC_KEY_B64).decode("utf-8")
+
+    SENDGRID_API_KEY: str
+    SENDGRID_FROM_EMAIL: str
 
     model_config = SettingsConfigDict(
         env_file= ".env",

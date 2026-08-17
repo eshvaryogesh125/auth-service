@@ -8,7 +8,7 @@ from app.core.settings import settings
 
 class AuthJsonFormatter(jsonlogger.JsonFormatter):
 
-    def add_fields(log_record: dict, record: logging.LogRecord, message_dict: dict) -> None:
+    def add_fields(self, log_record: dict, record: logging.LogRecord, message_dict: dict) -> None:
         super().add_fields(log_record, record, message_dict)
 
         if "message" in log_record:
@@ -21,7 +21,7 @@ class AuthJsonFormatter(jsonlogger.JsonFormatter):
 
 def get_logger(name: str = "auth") -> None:
 
-    logger = logging.getlogger(name)
+    logger = logging.getLogger(name)
 
     if logger.handlers:
         # already configured - no need to double attach the handlers
