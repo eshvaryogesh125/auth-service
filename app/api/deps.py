@@ -1,6 +1,6 @@
 from uuid import UUID
 
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError
 from sqlalchemy import select
@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db_session as get_db
 from app.core.security import decode_access_token
-from app.core.redis import BlacklistTokenService
+from app.core.redis import BlacklistTokenService, RateLimitService
 from app.models.user import User, UserRole
 
 
@@ -68,4 +68,15 @@ def require_role(role: str):
         if role not in user.roles:
             raise HTTPException(403)
         return user
+    return checker
+
+def rate_limit(limit: int, window: int, prefix: str):
+    async def checker(request: Request):
+        client_ip = request.client.host
+        allowed = await RateLimitService.check_and_increment(prefix, client_ip, limit, window)
+        if not allowed:
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail="Too many requests"
+            )
     return checker
