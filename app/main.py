@@ -1,6 +1,8 @@
 from fastapi import FastAPI
+
 from app.core.settings import settings 
 from app.core.logging import logger
+from app.api.v1.router import api_router
 
 app = FastAPI(
         title=settings.PROJECT_NAME,
@@ -9,6 +11,7 @@ app = FastAPI(
         redoc_url="/redoc"
     )
 
+app.include_router(api_router)
 
 @app.get("/health")
 def health_check():
