@@ -2,13 +2,14 @@ from uuid import UUID
 
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError
+from jose import JWTError, jwt
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload 
 
-from app.core.database import get_db_session as get_db
-from app.core.security import decode_access_token
+from app.core.settings import settings
+from app.core.database import get_db
+from app.core.security import decode_access_token, ALGORITHM
 from app.core.redis import BlacklistTokenService, RateLimitService
 from app.models.user import User, UserRole
 
@@ -80,3 +81,20 @@ def rate_limit(limit: int, window: int, prefix: str):
                 detail="Too many requests"
             )
     return checker
+
+async def get_token_payload(request: Request) -> dict:
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    auth_header = request.headers.get("Authorization")
+    if not auth_header or not auth_header.startswith("Bearer "):
+        raise credentials_exception
+    
+    token = auth_header.split(" ")[1]
+    try:
+        payload = jwt.decode(token, settings.JWT_PUBLIC_KEY, algorithms=[ALGORITHM])
+        return payload
+    except JWTError:
+        raise credentials_exception

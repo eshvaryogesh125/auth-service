@@ -16,22 +16,29 @@ def hash_password(password: str) -> str:
 def verify_password(plain_password: str, hashed_password) -> bool:
     return PWD_CONTEXT.verify(plain_password, hashed_password)
 
-def create_access_token(data: dict, expires_minutes: int = None) -> str:
-    to_encode = data.copy()
+def create_access_token(
+        subject: str,
+        roles: str,
+        tenant_id: str,
+        jti: str,
+        expires_minutes: int = None,
+    ) -> str:
+    
     expires_minutes = expires_minutes if expires_minutes is not None else settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES
-    expire = datetime.now(timezone.utc) + timedelta(minutes=expires_minutes)
+    now = datetime.now(timezone.utc)
+    expire = now + timedelta(minutes=expires_minutes)
 
-    to_encode.update({
+    payload = {
         "exp" : expire,
-        "iat" : datetime.now(timezone.utc),
+        "iat" : now,
         "type": "access",
-        "jti" : str(uuid.uuid4()),
-        # add sub
-        # add tenant
-        # add roles
-    })
+        "jti" : jti,
+        "sub" : subject,
+        "tenant_id" : tenant_id, 
+        "roles": roles
+    }
 
-    return jwt.encode(to_encode, settings.JWT_PRIVATE_KEY, ALGORITHM)
+    return jwt.encode(payload, settings.JWT_PRIVATE_KEY, ALGORITHM)
 
 def decode_access_token(to_decode):
     try:

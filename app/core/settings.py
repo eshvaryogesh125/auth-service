@@ -23,7 +23,8 @@ class Settings(BaseSettings):
             return self.DB_URL
         return f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
 
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int | None = 15
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS : int = 30
     JWT_PRIVATE_KEY_B64: str
     JWT_PUBLIC_KEY_B64: str
     @computed_field
