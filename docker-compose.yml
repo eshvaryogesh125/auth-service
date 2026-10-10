@@ -25,6 +25,24 @@ services:
       redis:
         condition: service_healthy # waits for the db to pass health checks
 
+  worker:
+    build: .
+    container_name: auth_celery_worker
+    volumes:
+      - ./app/:/code/app
+    env_file:
+      - .env
+    environment:
+      - ENV=development
+      - DB_HOST=db
+      - REDIS_URL=redis://redis:6379/0
+    command: celery -A app.core.celery_app worker --loglevel=info
+    depends_on:
+      redis:
+        condition: service_healthy
+      db:
+        condition: service_healthy
+
   db:
     image: postgres:15-alpine
     container_name: auth_postgres_db

@@ -11,23 +11,23 @@ from app.core.logging import logger
 class BlacklistTokenService:
 
     @staticmethod
-    def _get_key(jti: str) -> str:
-        return f"blacklist:{jti}"
+    def _get_key(value: str, namespace: str = "jti") -> str:
+        return f"blacklist:{namespace}:{value}"
     
     @staticmethod
-    async def add(jti: str, exp: int) -> None:
+    async def add(value: str, exp: int, namespace: str = "jti") -> None:
         if exp <= 0:
             return
 
         client = blacklist_client()
-        key =  BlacklistTokenService._get_key(jti)
-        await client.set(key, "1", ex= exp)
-        logger.info("token blacklisted", extra={"jti":jti, "ttl":exp})
+        key = BlacklistTokenService._get_key(value, namespace)
+        await client.set(key, "1", ex=exp)
+        logger.info("token blacklisted", extra={"namespace": namespace, "value": value, "ttl": exp})
 
     @staticmethod
-    async def is_blacklisted(jti:str) -> bool:
+    async def is_blacklisted(value: str, namespace: str = "jti") -> bool:
         client = blacklist_client()
-        key = BlacklistTokenService._get_key(jti)
+        key = BlacklistTokenService._get_key(value, namespace)
         return await client.exists(key) == 1
 
 

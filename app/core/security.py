@@ -21,6 +21,7 @@ def create_access_token(
         roles: str,
         tenant_id: str,
         jti: str,
+        sid: str | None = None,
         expires_minutes: int = None,
     ) -> str:
     
@@ -34,7 +35,8 @@ def create_access_token(
         "type": "access",
         "jti" : jti,
         "sub" : subject,
-        "tenant_id" : tenant_id, 
+        "tenant_id" : tenant_id,
+        "sid": sid,
         "roles": roles
     }
 

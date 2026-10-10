@@ -16,6 +16,8 @@ from app.schemas.identity import (
 from app.schemas.oauth import OAuthCallbackResponse
 from app.schemas.session import SessionResponse
 
+from pydantic import BaseModel
+
 __all__ = [
     "UserRegisterRequest",
     "UserRegisterResponse",

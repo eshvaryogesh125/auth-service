@@ -13,8 +13,14 @@ from app.core.security import decode_access_token, ALGORITHM
 from app.core.redis import BlacklistTokenService, RateLimitService
 from app.models.user import User, UserRole
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
+
+def get_client_ip(request: Request) -> str:
+    client = request.client
+    if client and client.host:
+        return client.host
+    return "unknown"
 
 
 async def get_current_user(
@@ -35,11 +41,15 @@ async def get_current_user(
 
     user_id : str | None = payload.get("sub")
     jti : str | None = payload.get("jti")
+    sid : str | None = payload.get("sid")
 
     if user_id is None or jti is None:
         raise credentials_exception
 
     if await BlacklistTokenService.is_blacklisted(jti):
+        raise credentials_exception
+
+    if sid is not None and await BlacklistTokenService.is_blacklisted(sid, namespace="sid"):
         raise credentials_exception
 
     try:
@@ -73,8 +83,26 @@ def require_role(role: str):
 
 def rate_limit(limit: int, window: int, prefix: str):
     async def checker(request: Request):
-        client_ip = request.client.host
-        allowed = await RateLimitService.check_and_increment(prefix, client_ip, limit, window)
+        email = None
+        content_type = request.headers.get("content-type", "")
+
+        if "application/x-www-form-urlencoded" in content_type:
+            form = await request.form()
+            email = form.get("username") or form.get("email")
+
+        if not email and "application/json" in content_type:
+            try:
+                data = await request.json()
+                email = (data or {}).get("email") or (data or {}).get("username")
+            except Exception:
+                email = None
+
+        if prefix == "ip":
+            identifier = get_client_ip(request)
+        else:
+            identifier = (email or get_client_ip(request)).lower()
+
+        allowed = await RateLimitService.check_and_increment(prefix, identifier, limit, window)
         if not allowed:
             raise HTTPException(
                 status_code=status.HTTP_429_TOO_MANY_REQUESTS,

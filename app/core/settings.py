@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     DB_PORT: int = 5432
     DB_NAME: str = "auth_db"
     DB_URL: str | None = None
+    REDIS_URL: str = "redis://localhost:6379/0"
 
     @computed_field
     @property
