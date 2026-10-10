@@ -1,12 +1,12 @@
 import uuid
 
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.orm import selectinload
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import hash_password, verify_password
 from app.core.redis import SingleUseTokenService
-from app.models.user import User
-from app.models.tenant import Tenant
+from app.models import User, Tenant
 from app.services.email_services import EmailService
 from app.core.logging import logger
 from app.core.settings import settings
@@ -84,3 +84,48 @@ class UserService:
         user.hashed_password = hash_password(new_password)
         await db.commit()
         logger.info("password_changed", extra={"user_id": str(user.id)})
+
+    @staticmethod
+    async def request_password_reset(db:AsyncSession, email: str, tenant_slug:str):
+
+        tenant_result = await db.execute(
+            select(Tenant).where(Tenant.slug == tenant_slug)
+        )
+        tenant = tenant_result.scalar_one_or_none()
+        if not tenant:
+            raise ValueError("not_exist_tenant")
+
+        user_result = await db.execute(
+            select(User).where(User.email == email, User.tenant_id == tenant.id)
+            .options(selectinload(User.roles))
+        )
+        user = user_result.scalar_one_or_none()
+        if not user:
+            raise ValueError("not_exist_email")
+
+        token = str(uuid.uuid4())
+        await SingleUseTokenService.create("pwreset",str(user.id),token,ttl=EMAIL_VERIFY_TTL_SECONDS)
+
+        await EmailService.send(
+            to=user.email,
+            subject="Password Reset Request",
+            body=f"Click to Reset Password: {settings.BASE_URL}/verify?token={token}"
+        )
+        logger.info("request_password_reset", extra={"user_id": str(user.id)})
+
+    @staticmethod
+    async def confirm_password_request(db:AsyncSession, token:str, new_password:str):
+
+        user_id = await SingleUseTokenService.consume("emailverify", token)
+        if not user_id:
+            raise ValueError("Invalid or Expired token")
+
+        result = await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        user = result.scalar_one_or_none()
+        if not user:
+            raise ValueError("User not found")
+
+        user.hashed_password = hash_password(new_password)
+        await db.commit()  
+
+        logger.info("confirm_password_request", extra={"user_id": str(user.id)})
